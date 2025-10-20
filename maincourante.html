@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Courante Électronique - Sécurité Privée</title>
+    <style>
+        /* === STYLES GÉNÉRAUX === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        /* === HEADER === */
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d68910;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        /* === PANNEAU DE CONNEXION === */
+        .login-panel {
+            padding: 50px;
+            text-align: center;
+        }
+
+        .login-panel h2 {
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #34495e;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ecf0f1;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        /* === MAIN CONTENT === */
+        .main-content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .section h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* === ÉVÉNEMENTS === */
+        .event-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .event-content {
+            flex: 1;
+        }
+
+        .event-time {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+
+        .event-description {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .event-photo {
+            max-width: 200px;
+            max-height: 150px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        /* === PHOTO PREVIEW === */
+        .photo-preview {
+            max-width: 300px;
+            max-height: 200px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        /* === LOG === */
+        .log-area {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+
+        .log-entry.success {
+            color: #27ae60;
+        }
+
+        .log-entry.error {
+            color: #e74c3c;
+        }
+
+        /* === STATS === */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+
+        /* === RESPONSIVE === */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .login-panel {
+                padding: 30px 20px;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+        }
+
+        /* === BUTTONS ACTIONS === */
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <div>
+                <h1>🛡️ Main Courante Électronique</h1>
+                <p>Gestion des services de sécurité privée</p>
+            </div>
+            <div class="user-info hidden" id="userInfo">
+                <span id="userName"></span>
+                <button class="btn btn-secondary" onclick="logout()">Déconnexion</button>
+            </div>
+        </div>
+
+        <!-- PANNEAU DE CONNEXION -->
+        <div class="login-panel" id="loginPanel">
+            <h2>Connexion Agent</h2>
+            <div class="form-group">
+                <label for="loginId">Identifiant :</label>
+                <input type="text" id="loginId" placeholder="Votre identifiant">
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Mot de passe :</label>
+                <input type="password" id="loginPassword" placeholder="Votre mot de passe">
+            </div>
+            <button class="btn btn-primary" onclick="login()">Se connecter</button>
+            <p style="margin-top: 20px; color: #7f8c8d; font-size: 12px;">
+                ⚠️ Authentification côté client pour la démo uniquement.<br>
+                En production, utiliser une authentification sécurisée côté serveur.
+            </p>
+            <div style="margin-top: 15px; padding: 15px; background: #e8f5e9; border-radius: 5px; text-align: left;">
+                <strong>📋 Comptes de démonstration :</strong>
+                <ul style="margin-top: 10px; margin-left: 20px; color: #2c3e50;">
+                    <li><code>agent1</code> / <code>demo123</code></li>
+                    <li><code>agent2</code> / <code>demo123</code></li>
+                    <li><code>admin</code> / <code>admin123</code></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- CONTENU PRINCIPAL -->
+        <div class="main-content hidden" id="mainContent">
+            <!-- PRISE DE SERVICE -->
+            <div class="section" id="serviceStartSection">
+                <h3>📍 Prise de Service</h3>
+                <div class="form-group">
+                    <label for="locationSelect">Lieu de service :</label>
+                    <select id="locationSelect">
+                        <option value="">-- Sélectionnez un lieu --</option>
+                        <option value="Site A - Centre Commercial">Site A - Centre Commercial</option>
+                        <option value="Site B - Immeuble de Bureaux">Site B - Immeuble de Bureaux</option>
+                        <option value="Site C - Entrepôt Logistique">Site C - Entrepôt Logistique</option>
+                        <option value="Site D - Résidence Privée">Site D - Résidence Privée</option>
+                        <option value="Site E - Événement">Site E - Événement</option>
+                    </select>
+                </div>
+                <button class="btn btn-success" onclick="startService()">🚀 Prise de Service</button>
+            </div>
+
+            <!-- SESSION EN COURS -->
+            <div class="section hidden" id="activeSessionSection">
+                <h3>✅ Session en cours</h3>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-label">Lieu</div>
+                        <div class="stat-value" style="font-size: 18px;" id="currentLocation"></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Heure de prise</div>
+                        <div class="stat-value" style="font-size: 18px;" id="startTime"></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Événements enregistrés</div>
+                        <div class="stat-value" id="eventCount">0</div>
+                    </div>
+                </div>
+
+                <!-- AJOUT ÉVÉNEMENT -->
+                <h3>📝 Ajouter un Événement</h3>
+                <div class="form-group">
+                    <label for="eventDescription">Description :</label>
+                    <textarea id="eventDescription" rows="3" placeholder="Décrivez l'événement..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="eventPhoto">Photo (optionnel) :</label>
+                    <input type="file" id="eventPhoto" accept="image/*" onchange="previewPhoto()">
+                    <img id="photoPreview" class="photo-preview hidden" alt="Aperçu photo">
+                </div>
+                <button class="btn btn-primary" onclick="addEvent()">➕ Ajouter l'événement</button>
+
+                <!-- LISTE DES ÉVÉNEMENTS -->
+                <h3 style="margin-top: 30px;">📋 Liste des Événements</h3>
+                <div id="eventsList"></div>
+
+                <!-- FIN DE SERVICE -->
+                <div class="actions">
+                    <button class="btn btn-danger" onclick="endService()">⏹️ Fin de Service</button>
+                </div>
+            </div>
+
+            <!-- GESTION & EXPORT -->
+            <div class="section">
+                <h3>⚙️ Gestion & Export</h3>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-label">Sessions sauvegardées</div>
+                        <div class="stat-value" id="sessionCount">0</div>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="exportData()">💾 Exporter l'historique JSON</button>
+                    <button class="btn btn-warning" onclick="clearStorage()">🗑️ Réinitialiser le stockage</button>
+                </div>
+            </div>
+
+            <!-- JOURNAL D'ACTIVITÉ -->
+            <div class="section">
+                <h3>📜 Journal d'Activité</h3>
+                <div class="log-area" id="logArea"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================
+        // CONFIGURATION - À PERSONNALISER
+        // ========================================
+        
+        // ⚠️ WEBHOOK DISCORD : Collez votre URL de webhook Discord ici
+        const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1371959510092091412/_hB3qx5J-x8ymBxopPMRZzBV-khEcgpHi6GKvUQHXfazb4RIrvd4SyB-Mf5kbfPB2oCY'; // REMPLACER PAR VOTRE WEBHOOK DISCORD
+        
+        // ⚠️ BACKEND PHP (optionnel) : URL de votre script PHP pour enregistrement SQL
+        const BACKEND_URL = ''; // REMPLACER PAR L'URL DE save.php si utilisé
+        
+        // ========================================
+        // VARIABLES GLOBALES
+        // ========================================
+        let currentUser = null;
+        let currentSession = null;
+        let events = [];
+
+        // ========================================
+        // COMPTES DÉMO (CLIENT-SIDE)
+        // ========================================
+        // ⚠️ Pour la démonstration uniquement - En production, authentifier côté serveur
+        const DEMO_ACCOUNTS = {
+            'agent1': { password: 'demo123', name: 'Jean Dupont' },
+            'agent2': { password: 'demo123', name: 'Marie Martin' },
+            'admin': { password: 'admin123', name: 'Administrateur' }
+        };
+
+        // ========================================
+        // AUTHENTIFICATION (CLIENT-SIDE DEMO)
+        // ========================================
+        
+        /**
+         * Connexion utilisateur (démo côté client)
+         * ⚠️ EN PRODUCTION : Utiliser une authentification serveur sécurisée (JWT, OAuth, etc.)
+         * 
+         * COMPTES DÉMO :
+         * - agent1 / demo123
+         * - agent2 / demo123
+         * - admin / admin123
+         */
+        function login() {
+            const loginId = document.getElementById('loginId').value.trim();
+            const loginPassword = document.getElementById('loginPassword').value.trim();
+            
+            if (!loginId || !loginPassword) {
+                alert('⚠️ Veuillez saisir un identifiant et un mot de passe.');
+                return;
+            }
+            
+            // Vérification avec les comptes démo
+            if (DEMO_ACCOUNTS[loginId] && DEMO_ACCOUNTS[loginId].password === loginPassword) {
+                currentUser = {
+                    id: loginId,
+                    name: DEMO_ACCOUNTS[loginId].name,
+                    loginTime: new Date().toISOString()
+                };
+                
+                // Afficher l'interface principale
+                document.getElementById('loginPanel').classList.add('hidden');
+                document.getElementById('mainContent').classList.remove('hidden');
+                document.getElementById('userInfo').classList.remove('hidden');
+                document.getElementById('userName').textContent = `Agent: ${currentUser.name}`;
+                
+                addLog(`Connexion réussie : ${currentUser.name}`, 'success');
+                updateStats();
+            } else {
+                alert('❌ Identifiant ou mot de passe incorrect.\n\nComptes démo :\n- agent1 / demo123\n- agent2 / demo123\n- admin / admin123');
+            }
+        }
+
+        /**
+         * Déconnexion utilisateur
+         */
+        function logout() {
+            if (currentSession) {
+                if (!confirm('⚠️ Une session est en cours. Voulez-vous vraiment vous déconnecter ?')) {
+                    return;
+                }
+            }
+            
+            currentUser = null;
+            currentSession = null;
+            events = [];
+            
+            document.getElementById('loginPanel').classList.remove('hidden');
+            document.getElementById('mainContent').classList.add('hidden');
+            document.getElementById('userInfo').classList.add('hidden');
+            document.getElementById('loginId').value = '';
+            document.getElementById('loginPassword').value = '';
+            
+            addLog('Déconnexion effectuée', 'success');
+        }
+
+        // ========================================
+        // GESTION DE SESSION
+        // ========================================
+        
+        /**
+         * Prise de service - Démarre une nouvelle session
+         */
+        async function startService() {
+            const location = document.getElementById('locationSelect').value;
+            
+            if (!location) {
+                alert('⚠️ Veuillez sélectionner un lieu de service.');
+                return;
+            }
+            
+            const startTime = new Date();
+            
+            currentSession = {
+                id: Date.now(),
+                agent: currentUser.name,
+                location: location,
+                startTime: startTime.toISOString(),
+                startTimeReadable: formatDateTime(startTime),
+                endTime: null,
+                duration: null,
+                events: []
+            };
+            
+            events = [];
+            
+            // Enregistrer en localStorage
+            saveSessionToLocal();
+            
+            // Envoyer webhook Discord
+            await sendDiscordWebhook('start', currentSession);
+            
+            // Mettre à jour l'interface
+            document.getElementById('serviceStartSection').classList.add('hidden');
+            document.getElementById('activeSessionSection').classList.remove('hidden');
+            document.getElementById('currentLocation').textContent = location;
+            document.getElementById('startTime').textContent = formatTime(startTime);
+            
+            addLog(`Prise de service - ${location}`, 'success');
+            updateStats();
+        }
+
+        /**
+         * Fin de service - Termine la session en cours
+         */
+        async function endService() {
+            if (!currentSession) {
+                alert('⚠️ Aucune session en cours.');
+                return;
+            }
+            
+            const endTime = new Date();
+            const startTime = new Date(currentSession.startTime);
+            const durationSeconds = Math.floor((endTime - startTime) / 1000);
+            
+            currentSession.endTime = endTime.toISOString();
+            currentSession.endTimeReadable = formatDateTime(endTime);
+            currentSession.duration = durationSeconds;
+            currentSession.durationReadable = formatDuration(durationSeconds);
+            currentSession.events = events;
+            
+            // Sauvegarder la session complète
+            saveCompletedSession();
+            
+            // Envoyer webhook Discord récapitulatif
+            await sendDiscordWebhook('end', currentSession);
+            
+            // Envoyer au backend PHP (si configuré et décommenté)
+            // await saveToBackend(currentSession);
+            
+            // Réinitialiser l'interface
+            document.getElementById('serviceStartSection').classList.remove('hidden');
+            document.getElementById('activeSessionSection').classList.add('hidden');
+            document.getElementById('eventsList').innerHTML = '';
+            document.getElementById('eventDescription').value = '';
+            document.getElementById('eventPhoto').value = '';
+            document.getElementById('photoPreview').classList.add('hidden');
+            
+            addLog(`Fin de service - Durée: ${currentSession.durationReadable}`, 'success');
+            
+            currentSession = null;
+            events = [];
+            updateStats();
+        }
+
+        // ========================================
+        // GESTION DES ÉVÉNEMENTS
+        // ========================================
+        
+        /**
+         * Ajouter un événement à la session en cours
+         */
+        function addEvent() {
+            if (!currentSession) {
+                alert('⚠️ Aucune session en cours. Veuillez effectuer une prise de service.');
+                return;
+            }
+            
+            const description = document.getElementById('eventDescription').value.trim();
+            
+            if (!description) {
+                alert('⚠️ Veuillez saisir une description pour l\'événement.');
+                return;
+            }
+            
+            const photoInput = document.getElementById('eventPhoto');
+            const timestamp = new Date();
+            
+            const event = {
+                id: Date.now(),
+                timestamp: timestamp.toISOString(),
+                timestampReadable: formatDateTime(timestamp),
+                description: description,
+                photo: null
+            };
+            
+            // Traiter la photo si présente
+            if (photoInput.files && photoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    event.photo = e.target.result; // Base64
+                    events.push(event);
+                    displayEvent(event);
+                    saveSessionToLocal();
+                    addLog(`Événement ajouté (avec photo)`, 'success');
+                    resetEventForm();
+                    updateStats();
+                };
+                reader.readAsDataURL(photoInput.files[0]);
+            } else {
+                events.push(event);
+                displayEvent(event);
+                saveSessionToLocal();
+                addLog(`Événement ajouté`, 'success');
+                resetEventForm();
+                updateStats();
+            }
+        }
+
+        /**
+         * Afficher un événement dans l'interface
+         */
+        function displayEvent(event) {
+            const eventsList = document.getElementById('eventsList');
+            const eventDiv = document.createElement('div');
+            eventDiv.className = 'event-item';
+            eventDiv.id = 'event-' + event.id;
+            
+            let photoHtml = '';
+            if (event.photo) {
+                photoHtml = '<img src="' + event.photo + '" class="event-photo" alt="Photo événement">';
+            }
+            
+            eventDiv.innerHTML = 
+                '<div class="event-content">' +
+                    '<div class="event-time">⏰ ' + event.timestampReadable + '</div>' +
+                    '<div class="event-description">' + escapeHtml(event.description) + '</div>' +
+                    photoHtml +
+                '</div>' +
+                '<button class="btn btn-danger" onclick="deleteEvent(' + event.id + ')">🗑️</button>';
+            
+            eventsList.appendChild(eventDiv);
+        }
+
+        /**
+         * Supprimer un événement
+         */
+        function deleteEvent(eventId) {
+            if (!confirm('Voulez-vous vraiment supprimer cet événement ?')) {
+                return;
+            }
+            
+            events = events.filter(function(e) { return e.id !== eventId; });
+            const eventElement = document.getElementById('event-' + eventId);
+            if (eventElement) {
+                eventElement.remove();
+            }
+            saveSessionToLocal();
+            addLog('Événement supprimé', 'success');
+            updateStats();
+        }
+
+        /**
+         * Réinitialiser le formulaire d'événement
+         */
+        function resetEventForm() {
+            document.getElementById('eventDescription').value = '';
+            document.getElementById('eventPhoto').value = '';
+            document.getElementById('photoPreview').classList.add('hidden');
+        }
+
+        /**
+         * Prévisualiser la photo sélectionnée
+         */
+        function previewPhoto() {
+            const photoInput = document.getElementById('eventPhoto');
+            const preview = document.getElementById('photoPreview');
+            
+            if (photoInput.files && photoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(photoInput.files[0]);
+            } else {
+                preview.classList.add('hidden');
+            }
+        }
+
+        // ========================================
+        // WEBHOOK DISCORD
+        // ========================================
+        
+        /**
+         * Envoyer un webhook Discord
+         * @param {string} type - Type de webhook ('start' ou 'end')
+         * @param {object} session - Données de session
+         */
+        async function sendDiscordWebhook(type, session) {
+            if (!DISCORD_WEBHOOK_URL) {
+                addLog('⚠️ Webhook Discord non configuré', 'error');
+                return;
+            }
+            
+            try {
+                let content = '';
+                
+                if (type === 'start') {
+                    content = '🚀 **PRISE DE SERVICE**\n' +
+                              '👤 Agent: ' + session.agent + '\n' +
+                              '📍 Lieu: ' + session.location + '\n' +
+                              '⏰ Heure: ' + session.startTimeReadable;
+                } else if (type === 'end') {
+                    let eventsText = session.events.map(function(e, i) {
+                        return (i+1) + '. [' + e.timestampReadable + '] ' + e.description;
+                    }).join('\n');
+                    
+                    if (!eventsText) eventsText = 'Aucun événement enregistré';
+                    
+                    content = '⏹️ **FIN DE SERVICE**\n' +
+                              '👤 Agent: ' + session.agent + '\n' +
+                              '📍 Lieu: ' + session.location + '\n' +
+                              '🕐 Prise: ' + session.startTimeReadable + '\n' +
+                              '🕑 Fin: ' + session.endTimeReadable + '\n' +
+                              '⏱️ Durée: ' + session.durationReadable + '\n' +
+                              '📊 Événements: ' + session.events.length + '\n\n' +
+                              '**Détail des événements:**\n' + eventsText;
+                }
+                
+                const payload = {
+                    content: content,
+                    username: 'Main Courante Bot'
+                };
+                
+                // Envoi du webhook - Safari peut nécessiter le polyfill fetch
+                const response = await fetch(DISCORD_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload),
+                    mode: 'cors' // Explicite pour Safari
+                });
+                
+                if (response.ok) {
+                    addLog('✅ Webhook Discord envoyé', 'success');
+                } else {
+                    addLog('❌ Erreur webhook Discord', 'error');
+                }
+            } catch (error) {
+                addLog('❌ Erreur webhook: ' + error.message, 'error');
+                console.error('Erreur webhook Discord:', error);
+                // Note: CORS bloquera probablement la requête directe
+                // En production, passer par un backend serveur
+            }
+        }
+
+        // ========================================
+        // STOCKAGE LOCAL (localStorage)
+        // ========================================
+        
+        /**
+         * Sauvegarder la session en cours dans localStorage
+         * Compatible Safari - n'utilise pas le spread operator
+         */
+        function saveSessionToLocal() {
+            if (!currentSession) return;
+            
+            const sessionData = Object.assign({}, currentSession, {
+                events: events
+            });
+            
+            try {
+                localStorage.setItem('currentSession', JSON.stringify(sessionData));
+            } catch (e) {
+                addLog('❌ Erreur sauvegarde: ' + e.message, 'error');
+                console.error('Erreur localStorage:', e);
+            }
+        }
+
+        /**
+         * Sauvegarder une session terminée dans l'historique
+         */
+        function saveCompletedSession() {
+            if (!currentSession) return;
+            
+            let history = JSON.parse(localStorage.getItem('sessionsHistory') || '[]');
+            history.push(currentSession);
+            localStorage.setItem('sessionsHistory', JSON.stringify(history));
+            localStorage.removeItem('currentSession');
+        }
+
+        /**
+         * Exporter l'historique en JSON (compatible Safari)
+         */
+        function exportData() {
+            const history = JSON.parse(localStorage.getItem('sessionsHistory') || '[]');
+            
+            if (history.length === 0) {
+                alert('⚠️ Aucune donnée à exporter.');
+                return;
+            }
+            
+            const dataStr = JSON.stringify(history, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            // Safari nécessite une gestion différente du téléchargement
+            if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+                // Pour IE/Edge
+                window.navigator.msSaveOrOpenBlob(dataBlob, 'main_courante_export_' + Date.now() + '.json');
+            } else {
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'main_courante_export_' + Date.now() + '.json';
+                
+                // Safari nécessite que le lien soit dans le DOM
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Nettoyer l'URL après un délai pour Safari
+                setTimeout(function() {
+                    URL.revokeObjectURL(url);
+                }, 100);
+            }
+            
+            addLog('💾 Historique exporté', 'success');
+        }
+
+        /**
+         * Réinitialiser le stockage local (compatible Safari)
+         */
+        function clearStorage() {
+            if (!confirm('⚠️ Voulez-vous vraiment supprimer toutes les données sauvegardées ?')) {
+                return;
+            }
+            
+            try {
+                localStorage.removeItem('sessionsHistory');
+                localStorage.removeItem('currentSession');
+                addLog('🗑️ Stockage réinitialisé', 'success');
+                updateStats();
+            } catch (e) {
+                addLog('❌ Erreur lors de la réinitialisation', 'error');
+                console.error('Erreur clearStorage:', e);
+            }
+        }
+
+        // ========================================
+        // BACKEND PHP (OPTIONNEL - DÉCOMMENTER POUR ACTIVER)
+        // ========================================
+        
+        /**
+         * Envoyer les données au backend PHP pour enregistrement SQL
+         * DÉCOMMENTER cette fonction et l'appel dans endService() pour activer
+         */
+        /*
+        async function saveToBackend(session) {
+            if (!BACKEND_URL) {
+                addLog('⚠️ URL backend non configurée', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(BACKEND_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(session)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    addLog('✅ Données enregistrées en base de données', 'success');
+                } else {
+                    addLog(`❌ Erreur base de données: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                addLog(`❌ Erreur backend: ${error.message}`, 'error');
+                console.error('Erreur backend:', error);
+            }
+        }
+        */
+
+        // ========================================
+        // UTILITAIRES
+        // ========================================
+        
+        /**
+         * Formater une date en format lisible (compatible Safari)
+         */
+        function formatDateTime(date) {
+            const d = new Date(date);
+            // Safari nécessite un format spécifique pour les dates ISO
+            if (isNaN(d.getTime())) {
+                // Fallback si la date n'est pas valide
+                return 'Date invalide';
+            }
+            const dateOptions = { year: 'numeric', month: '2-digit', day: '2-digit' };
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            return d.toLocaleDateString('fr-FR', dateOptions) + ' à ' + d.toLocaleTimeString('fr-FR', timeOptions);
+        }
+
+        /**
+         * Formater l'heure uniquement (compatible Safari)
+         */
+        function formatTime(date) {
+            const d = new Date(date);
+            if (isNaN(d.getTime())) {
+                return 'Heure invalide';
+            }
+            const options = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            return d.toLocaleTimeString('fr-FR', options);
+        }
+
+        /**
+         * Formater une durée en secondes
+         */
+        function formatDuration(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            return `${hours}h ${minutes}min ${secs}s`;
+        }
+
+        /**
+         * Échapper le HTML pour éviter les injections XSS
+         */
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        /**
+         * Ajouter une entrée au journal d'activité (compatible Safari)
+         */
+        function addLog(message, type) {
+            type = type || '';
+            const logArea = document.getElementById('logArea');
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry ' + type;
+            const timestamp = new Date().toLocaleTimeString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            logEntry.textContent = '[' + timestamp + '] ' + message;
+            logArea.appendChild(logEntry);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        /**
+         * Mettre à jour les statistiques affichées
+         */
+        function updateStats() {
+            // Compter les événements
+            document.getElementById('eventCount').textContent = events.length;
+            
+            // Compter les sessions sauvegardées
+            const history = JSON.parse(localStorage.getItem('sessionsHistory') || '[]');
+            document.getElementById('sessionCount').textContent = history.length;
+        }
+
+        /**
+         * Initialisation au chargement de la page
+         */
+        window.onload = function() {
+            addLog('Application démarrée', 'success');
+            updateStats();
+            
+            // Restaurer une session en cours si elle existe
+            const savedSession = localStorage.getItem('currentSession');
+            if (savedSession) {
+                addLog('⚠️ Session interrompue détectée', 'error');
+            }
+        };
+    </script>
+</body>
+</html>
+
+<!--
+========================================
+SCHÉMA SQL MYSQL - À IMPORTER DANS phpMyAdmin
+========================================
+
+-- Table des sessions de service
+CREATE TABLE mc_sessions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    agent_name VARCHAR(100) NOT NULL,
+    location VARCHAR(255) NOT NULL,
+    start_time DATETIME NOT NULL,
+    end_time DATETIME DEFAULT NULL,
+    duration_seconds INT DEFAULT NULL,
+    event_count INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_agent (agent_name),
+    INDEX idx_start_time (start_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Table des événements
+CREATE TABLE mc_events (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    session_id INT NOT NULL,
+    timestamp DATETIME NOT NULL,
+    description TEXT NOT NULL,
+    photo LONGTEXT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES mc_sessions(id) ON DELETE CASCADE,
+    INDEX idx_session (session_id),
+    INDEX idx_timestamp (timestamp)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+========================================
+EXEMPLE CODE PHP - save.php
+========================================
+
+<?php
+/**
+ * Script PHP pour enregistrer les sessions en base de données MySQL
+ * À placer sur votre serveur et configurer l'URL dans la constante BACKEND_URL
+ * 
+ * ⚠️ SÉCURITÉ : En production, ajouter :
+ * - Validation et authentification des requêtes
+ * - Protection CSRF
+ * - Limitation de taille des données
+ * - Logs d'erreur sécurisés
+ * - Utilisation de HTTPS obligatoire
+ */
+
+// Configuration de la base de données
+// ⚠️ REMPLACER par vos vraies informations de connexion
+$db_host = 'localhost';
+$db_user = 'votre_utilisateur';
+$db_pass = 'votre_mot_de_passe';
+$db_name = 'votre_base_de_donnees';
+
+// Headers CORS (à adapter selon vos besoins)
+header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *'); // ⚠️ En production, spécifier le domaine exact
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+
+// Gérer les requêtes OPTIONS (preflight)
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
+// Accepter uniquement les requêtes POST
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'error' => 'Méthode non autorisée']);
+    exit();
+}
+
+try {
+    // Connexion à la base de données
+    $pdo = new PDO(
+        "mysql:host=$db_host;dbname=$db_name;charset=utf8mb4",
+        $db_user,
+        $db_pass,
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false
+        ]
+    );
+    
+    // Récupérer les données JSON
+    $json = file_get_contents('php://input');
+    $data = json_decode($json, true);
+    
+    if (!$data) {
+        throw new Exception('Données JSON invalides');
+    }
+    
+    // Validation des données obligatoires
+    if (empty($data['agent']) || empty($data['location']) || empty($data['startTime'])) {
+        throw new Exception('Données manquantes');
+    }
+    
+    // Démarrer une transaction
+    $pdo->beginTransaction();
+    
+    // Insérer la session
+    $stmt = $pdo->prepare("
+        INSERT INTO mc_sessions 
+        (agent_name, location, start_time, end_time, duration_seconds, event_count) 
+        VALUES (:agent, :location, :start_time, :end_time, :duration, :event_count)
+    ");
+    
+    $stmt->execute([
+        ':agent' => $data['agent'],
+        ':location' => $data['location'],
+        ':start_time' => $data['startTime'],
+        ':end_time' => $data['endTime'] ?? null,
+        ':duration' => $data['duration'] ?? null,
+        ':event_count' => isset($data['events']) ? count($data['events']) : 0
+    ]);
+    
+    $session_id = $pdo->lastInsertId();
+    
+    // Insérer les événements
+    if (!empty($data['events']) && is_array($data['events'])) {
+        $stmt = $pdo->prepare("
+            INSERT INTO mc_events 
+            (session_id, timestamp, description, photo) 
+            VALUES (:session_id, :timestamp, :description, :photo)
+        ");
+        
+        foreach ($data['events'] as $event) {
+            // Limiter la taille des photos (ex: 5 Mo en base64)
+            $photo = null;
+            if (!empty($event['photo'])) {
+                $photoSize = strlen($event['photo']);
+                if ($photoSize > 5 * 1024 * 1024) {
+                    // Photo trop grande, ignorer
+                    error_log("Photo trop grande ignorée: $photoSize bytes");
+                } else {
+                    $photo = $event['photo'];
+                }
+            }
+            
+            $stmt->execute([
+                ':session_id' => $session_id,
+                ':timestamp' => $event['timestamp'],
+                ':description' => $event['description'],
+                ':photo' => $photo
+            ]);
+        }
+    }
+    
+    // Valider la transaction
+    $pdo->commit();
+    
+    // Réponse succès
+    echo json_encode([
+        'success' => true,
+        'session_id' => $session_id,
+        'message' => 'Session enregistrée avec succès'
+    ]);
+    
+} catch (PDOException $e) {
+    // Annuler la transaction en cas d'erreur
+    if (isset($pdo) && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    
+    // Logger l'erreur (ne pas exposer les détails au client)
+    error_log('Erreur base de données: ' . $e->getMessage());
+    
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Erreur lors de l\'enregistrement'
+    ]);
+    
+} catch (Exception $e) {
+    // Erreur générale
+    error_log('Erreur: ' . $e->getMessage());
+    
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'error' => $e->getMessage()
+    ]);
+}
+?>
+
+========================================
+NOTES DE SÉCURITÉ - À LIRE IMPÉRATIVEMENT
+========================================
+
+1. AUTHENTIFICATION :
+   - Ne JAMAIS stocker les mots de passe en clair
+   - Utiliser un système d'authentification serveur robuste (JWT, sessions PHP, OAuth)
+   - Implémenter une authentification à deux facteurs pour les comptes sensibles
+   - Hasher les mots de passe avec bcrypt ou Argon2
+
+2. VALIDATION CÔTÉ SERVEUR :
+   - Toujours valider et nettoyer les données reçues côté serveur
+   - Ne jamais faire confiance aux données client
+   - Utiliser des requêtes préparées (PDO) pour éviter les injections SQL
+   - Valider les types, formats et longueurs des données
+
+3. GESTION DES IMAGES :
+   - Limiter la taille maximale des uploads (ex: 5 Mo)
+   - Vérifier le type MIME réel des fichiers (pas seulement l'extension)
+   - Stocker les images hors du webroot si possible
+   - Envisager un service de stockage externe (AWS S3, etc.) pour la production
+
+4. PROTECTION CSRF/XSS :
+   - Implémenter des tokens CSRF pour toutes les actions sensibles
+   - Échapper toutes les sorties HTML (déjà fait dans ce code avec escapeHtml)
+   - Utiliser Content Security Policy (CSP) headers
+   - Valider l'origine des requêtes
+
+5. CORS :
+   - En production, spécifier les domaines autorisés précisément
+   - Ne jamais utiliser Access-Control-Allow-Origin: * en production
+   - Privilégier un backend sur le même domaine pour éviter CORS
+
+6. HTTPS :
+   - OBLIGATOIRE en production pour protéger les données en transit
+   - Utiliser des certificats SSL/TLS valides (Let's Encrypt gratuit)
+   - Forcer HTTPS avec HSTS headers
+
+7. WEBHOOK DISCORD :
+   - Ne jamais exposer l'URL du webhook côté client en production
+   - Passer par un backend serveur pour envoyer les webhooks
+   - Limiter le débit d'envoi (rate limiting)
+
+8. DONNÉES SENSIBLES :
+   - Ne pas stocker d'informations personnelles sensibles sans chiffrement
+   - Respecter le RGPD (consentement, droit à l'oubli, etc.)
+   - Implémenter des sauvegardes régulières
+   - Définir des politiques de rétention des données
+
+9. LOGS ET MONITORING :
+   - Logger les actions importantes (connexions, modifications)
+   - Ne pas logger les mots de passe ou tokens
+   - Monitorer les tentatives de connexion échouées
+   - Mettre en place des alertes pour activités suspectes
+
+10. MISE À JOUR :
+    - Garder PHP, MySQL et toutes les dépendances à jour
+    - Effectuer des audits de sécurité réguliers
+    - Tester les sauvegardes et le plan de reprise d'activité
+
+========================================
+POUR DÉPLOYER EN PRODUCTION :
+========================================
+
+1. Remplacer DISCORD_WEBHOOK_URL par votre webhook Discord
+2. Créer la base de données MySQL et importer le schéma SQL ci-dessus
+3. Configurer save.php avec vos identifiants de base de données
+4. Uploader save.php sur votre serveur web (PHP 7.4+ recommandé)
+5. Mettre à jour BACKEND_URL avec l'URL de save.php
+6. Décommenter l'appel à saveToBackend() dans la fonction endService()
+7. Implémenter une vraie authentification côté serveur
+8. Configurer HTTPS sur votre serveur
+9. Tester en environnement de staging avant production
+10. Former les utilisateurs sur l'utilisation de l'outil
+
+========================================
+SUPPORT ET DOCUMENTATION :
+========================================
+
+Pour toute question ou problème :
+- Vérifier les logs du navigateur (Console F12)
+- Vérifier les logs PHP du serveur
+- Consulter la documentation Discord Webhooks : https://discord.com/developers/docs/resources/webhook
+- Documentation PHP PDO : https://www.php.net/manual/fr/book.pdo.php
+
+Version : 1.0
+Dernière mise à jour : 2025
+-->
