@@ -298,6 +298,8 @@
             </div>
             <div class="user-info hidden" id="userInfo">
                 <span id="userName"></span>
+                <!-- Bouton Ajouter Agent ajouté -->
+                <button class="btn btn-secondary" id="addAgentBtn" onclick="startAddAgent()" title="Ajouter un agent">➕ Ajouter Agent</button>
                 <button class="btn btn-secondary" onclick="logout()">Déconnexion</button>
             </div>
         </div>
@@ -344,6 +346,12 @@
                         <option value="Site E - Événement">Site E - Événement</option>
                     </select>
                 </div>
+                <!-- Alerte: afficher la liste des agents connectés et permettre de sélectionner (multi-agent) -->
+                <div class="form-group">
+                    <label for="agentsConnected">Agents connectés pour la prise :</label>
+                    <select id="agentsConnected" multiple size="3" style="height:auto;"></select>
+                    <small style="color:#7f8c8d;">Sélection multiple possible : Ctrl/Cmd + clic</small>
+                </div>
                 <button class="btn btn-success" onclick="startService()">🚀 Prise de Service</button>
             </div>
 
@@ -363,6 +371,13 @@
                         <div class="stat-label">Événements enregistrés</div>
                         <div class="stat-value" id="eventCount">0</div>
                     </div>
+                </div>
+
+                <!-- Sélecteur d'agent actif -->
+                <div class="form-group">
+                    <label for="activeAgentSelect">Agent actif (ajout d'événements) :</label>
+                    <select id="activeAgentSelect"></select>
+                    <small style="color:#7f8c8d; display:block; margin-top:6px;">Sélectionnez qui signera les événements (par défaut : premier agent présent).</small>
                 </div>
 
                 <!-- AJOUT ÉVÉNEMENT -->
@@ -421,6 +436,9 @@
         
         // ⚠️ BACKEND PHP (optionnel) : URL de votre script PHP pour enregistrement SQL
         const BACKEND_URL = ''; // REMPLACER PAR L'URL DE save.php si utilisé
+
+        // ⚠️ WEBHOOK QUOTIDIEN (RAPPORT) : URL du webhook pour les rapports journaliers
+        const DISCORD_DAILY_WEBHOOK_URL = 'https://discord.com/api/webhooks/1371959565616418857/_h7LRerUy5YGdZwN_RpnZRFWuEQIiXst3U7gESx3URGlgKaJyz42Y7vLb2dF2Vza2FmQ'; // REMPLACER PAR VOTRE WEBHOOK QUOTIDIEN (rapport 08:00)
         
         // ========================================
         // VARIABLES GLOBALES
@@ -429,6 +447,9 @@
         let currentSession = null;
         let events = [];
 
+        // Nouveaux objets pour multi-agent
+        let loggedInAgents = []; // liste des agents connectés (chaque élément : {id, name, loginTime})
+        let addAgentMode = false; // flag utilisé lorsque "Ajouter Agent" est cliqué
         // ========================================
         // COMPTES DÉMO (CLIENT-SIDE)
         // ========================================
@@ -463,12 +484,45 @@
             
             // Vérification avec les comptes démo
             if (DEMO_ACCOUNTS[loginId] && DEMO_ACCOUNTS[loginId].password === loginPassword) {
-                currentUser = {
+                const newUser = {
                     id: loginId,
                     name: DEMO_ACCOUNTS[loginId].name,
                     loginTime: new Date().toISOString()
                 };
+
+                // Si on est en "ajout d'agent" (bouton Ajouter Agent)
+                if (addAgentMode) {
+                    // Ajouter l'agent à la liste des agents connectés
+                    loggedInAgents.push(newUser);
+                    addLog(`Agent ajouté: ${newUser.name}`, 'success');
+
+                    // Si une session en cours, l'ajouter à la session
+                    if (currentSession) {
+                        currentSession.agents.push(newUser);
+                        saveSessionToLocal();
+                        refreshAgentsUI();
+                    }
+
+                    // remettre le flag et revenir à l'interface principale
+                    addAgentMode = false;
+                    document.getElementById('loginPanel').classList.add('hidden');
+                    document.getElementById('mainContent').classList.remove('hidden');
+                    document.getElementById('userInfo').classList.remove('hidden');
+
+                    // remettre les champs login
+                    document.getElementById('loginId').value = '';
+                    document.getElementById('loginPassword').value = '';
+
+                    return;
+                }
                 
+                // login normal (principal)
+                currentUser = newUser;
+
+                // si pas déjà dans loggedInAgents, ajouter
+                const exists = loggedInAgents.some(a => a.id === currentUser.id);
+                if (!exists) loggedInAgents.push(currentUser);
+
                 // Afficher l'interface principale
                 document.getElementById('loginPanel').classList.add('hidden');
                 document.getElementById('mainContent').classList.remove('hidden');
@@ -477,6 +531,9 @@
                 
                 addLog(`Connexion réussie : ${currentUser.name}`, 'success');
                 updateStats();
+
+                // Rafraîchir UI agents
+                refreshAgentsUI();
             } else {
                 alert('❌ Identifiant ou mot de passe incorrect.\n\nComptes démo :\n- agent1 / demo123\n- agent2 / demo123\n- admin / admin123');
             }
@@ -495,6 +552,7 @@
             currentUser = null;
             currentSession = null;
             events = [];
+            loggedInAgents = [];
             
             document.getElementById('loginPanel').classList.remove('hidden');
             document.getElementById('mainContent').classList.add('hidden');
@@ -519,12 +577,26 @@
                 alert('⚠️ Veuillez sélectionner un lieu de service.');
                 return;
             }
-            
+
+            // Récupérer agents sélectionnés dans la liste (multi-select)
+            const agentsSelect = document.getElementById('agentsConnected');
+            const selectedOptions = Array.from(agentsSelect.selectedOptions);
+            if (selectedOptions.length === 0) {
+                alert('⚠️ Veuillez sélectionner au moins un agent pour la prise de service.');
+                return;
+            }
+            const selectedAgents = selectedOptions.map(opt => {
+                const agentId = opt.value;
+                // retrouver dans loggedInAgents
+                const a = loggedInAgents.find(x => x.id === agentId);
+                return a ? a : { id: agentId, name: opt.textContent, loginTime: new Date().toISOString() };
+            });
+
             const startTime = new Date();
             
             currentSession = {
                 id: Date.now(),
-                agent: currentUser.name,
+                agents: selectedAgents.slice(), // tableau d'agents présents
                 location: location,
                 startTime: startTime.toISOString(),
                 startTimeReadable: formatDateTime(startTime),
@@ -538,7 +610,7 @@
             // Enregistrer en localStorage
             saveSessionToLocal();
             
-            // Envoyer webhook Discord
+            // Envoyer webhook Discord (start) - inclut la liste des agents
             await sendDiscordWebhook('start', currentSession);
             
             // Mettre à jour l'interface
@@ -546,7 +618,10 @@
             document.getElementById('activeSessionSection').classList.remove('hidden');
             document.getElementById('currentLocation').textContent = location;
             document.getElementById('startTime').textContent = formatTime(startTime);
-            
+
+            // préparer le select d'agent actif et par défaut choisir le premier agent
+            refreshAgentsUI();
+
             addLog(`Prise de service - ${location}`, 'success');
             updateStats();
         }
@@ -616,13 +691,19 @@
             
             const photoInput = document.getElementById('eventPhoto');
             const timestamp = new Date();
+
+            // qui est l'agent actif ?
+            const activeAgentSelect = document.getElementById('activeAgentSelect');
+            const activeAgentId = activeAgentSelect && activeAgentSelect.value ? activeAgentSelect.value : (currentSession.agents[0] ? currentSession.agents[0].id : null);
+            const activeAgent = currentSession.agents.find(a => a.id === activeAgentId) || (currentSession.agents[0] || { id: 'unknown', name: 'Inconnu' });
             
             const event = {
                 id: Date.now(),
                 timestamp: timestamp.toISOString(),
                 timestampReadable: formatDateTime(timestamp),
                 description: description,
-                photo: null
+                photo: null,
+                addedBy: activeAgent.name
             };
             
             // Traiter la photo si présente
@@ -633,7 +714,7 @@
                     events.push(event);
                     displayEvent(event);
                     saveSessionToLocal();
-                    addLog(`Événement ajouté (avec photo)`, 'success');
+                    addLog(`Événement ajouté (avec photo) par ${event.addedBy}`, 'success');
                     resetEventForm();
                     updateStats();
                 };
@@ -642,7 +723,7 @@
                 events.push(event);
                 displayEvent(event);
                 saveSessionToLocal();
-                addLog(`Événement ajouté`, 'success');
+                addLog(`Événement ajouté par ${event.addedBy}`, 'success');
                 resetEventForm();
                 updateStats();
             }
@@ -661,16 +742,52 @@
             if (event.photo) {
                 photoHtml = '<img src="' + event.photo + '" class="event-photo" alt="Photo événement">';
             }
-            
+
+            // select pour réassigner l'agent auteur (quick "swipe"/select)
+            let assignSelectHtml = '';
+            if (currentSession && currentSession.agents && currentSession.agents.length > 0) {
+                assignSelectHtml = '<div style="margin-top:8px;">' +
+                    '<label style="font-size:12px;color:#7f8c8d;margin-right:6px;">Signé par :</label>' +
+                    '<select onchange="reassignEventAgent(' + event.id + ', this.value)">' +
+                    currentSession.agents.map(a => {
+                        return '<option value="' + a.id + '"' + (a.name === event.addedBy ? ' selected' : '') + '>' + a.name + '</option>';
+                    }).join('') +
+                    '</select>' +
+                    '</div>';
+            }
+
             eventDiv.innerHTML = 
                 '<div class="event-content">' +
-                    '<div class="event-time">⏰ ' + event.timestampReadable + '</div>' +
+                    '<div class="event-time">⏰ ' + event.timestampReadable + ' — <strong style="font-size:12px;color:#2c3e50;">' + escapeHtml(event.addedBy || 'Inconnu') + '</strong></div>' +
                     '<div class="event-description">' + escapeHtml(event.description) + '</div>' +
                     photoHtml +
+                    assignSelectHtml +
                 '</div>' +
                 '<button class="btn btn-danger" onclick="deleteEvent(' + event.id + ')">🗑️</button>';
             
             eventsList.appendChild(eventDiv);
+        }
+
+        /**
+         * Réassigner l'agent auteur d'un événement
+         */
+        function reassignEventAgent(eventId, agentId) {
+            const ev = events.find(e => e.id === eventId);
+            if (!ev) return;
+            const agent = currentSession.agents.find(a => a.id === agentId);
+            if (!agent) return;
+            ev.addedBy = agent.name;
+            // Mettre à jour affichage
+            const el = document.getElementById('event-' + eventId);
+            if (el) {
+                // mettre à jour la partie time/author
+                const timeDiv = el.querySelector('.event-time');
+                if (timeDiv) {
+                    timeDiv.innerHTML = '⏰ ' + ev.timestampReadable + ' — <strong style="font-size:12px;color:#2c3e50;">' + escapeHtml(ev.addedBy) + '</strong>';
+                }
+            }
+            saveSessionToLocal();
+            addLog(`Événement ${eventId} réassigné à ${agent.name}`, 'success');
         }
 
         /**
@@ -739,18 +856,19 @@
                 
                 if (type === 'start') {
                     content = '🚀 **PRISE DE SERVICE**\n' +
-                              '👤 Agent: ' + session.agent + '\n' +
+                              '👥 Agents: ' + session.agents.map(a => a.name).join(', ') + '\n' +
                               '📍 Lieu: ' + session.location + '\n' +
                               '⏰ Heure: ' + session.startTimeReadable;
                 } else if (type === 'end') {
                     let eventsText = session.events.map(function(e, i) {
-                        return (i+1) + '. [' + e.timestampReadable + '] ' + e.description;
+                        const by = e.addedBy ? (' — ajouté par ' + e.addedBy) : '';
+                        return (i+1) + '. [' + e.timestampReadable + '] ' + e.description + by;
                     }).join('\n');
                     
                     if (!eventsText) eventsText = 'Aucun événement enregistré';
                     
                     content = '⏹️ **FIN DE SERVICE**\n' +
-                              '👤 Agent: ' + session.agent + '\n' +
+                              '👥 Agents: ' + session.agents.map(a => a.name).join(', ') + '\n' +
                               '📍 Lieu: ' + session.location + '\n' +
                               '🕐 Prise: ' + session.startTimeReadable + '\n' +
                               '🕑 Fin: ' + session.endTimeReadable + '\n' +
@@ -784,6 +902,128 @@
                 console.error('Erreur webhook Discord:', error);
                 // Note: CORS bloquera probablement la requête directe
                 // En production, passer par un backend serveur
+            }
+        }
+
+        /**
+         * Envoyer un webhook Discord pour le rapport quotidien (embed)
+         * Période: hier 08:00 -> aujourd'hui 08:00
+         */
+        async function sendDailyReportWebhook() {
+            if (!DISCORD_DAILY_WEBHOOK_URL) {
+                addLog('⚠️ Webhook quotidien non configuré', 'error');
+                return;
+            }
+
+            try {
+                // calculer la fenêtre : hier 08:00 -> aujourd'hui 08:00
+                const now = new Date();
+                // today 08:00
+                const today8 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0, 0, 0);
+                let startPeriod = new Date(today8.getTime() - 24*3600*1000); // hier 08:00
+                let endPeriod = today8; // aujourd'hui 08:00
+
+                // si l'heure actuelle est avant 08:00, la "période d'hier->aujourd'hui" est hier-08 -> aujourd'hui-08 (aujourd'hui = ce matin)
+                // sinon, si on appelle après 08:00, considérer la période précédente (toujours hier 08 -> aujourd'hui 08)
+                // Récupérer historique
+                const history = JSON.parse(localStorage.getItem('sessionsHistory') || '[]');
+
+                const sessionsInPeriod = history.filter(s => {
+                    const sStart = new Date(s.startTime);
+                    // session est incluse si elle commence dans la fenêtre OR si elle a une endTime et est partiellement dans la fenêtre
+                    const sEnd = s.endTime ? new Date(s.endTime) : null;
+                    const intersects = (sStart >= startPeriod && sStart < endPeriod) || (sEnd && sEnd > startPeriod && sEnd <= endPeriod) || (sStart <= startPeriod && sEnd && sEnd >= endPeriod);
+                    return intersects;
+                });
+
+                if (sessionsInPeriod.length === 0) {
+                    const payloadEmpty = {
+                        username: 'Main Courante Bot',
+                        content: `📤 Rapport quotidien — Période: ${formatDateTime(startPeriod)} → ${formatDateTime(endPeriod)}\nAucune vacation enregistrée durant cette période.`
+                    };
+                    await fetch(DISCORD_DAILY_WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payloadEmpty),
+                        mode: 'cors'
+                    });
+                    addLog('✅ Rapport quotidien envoyé (vide)', 'success');
+                    return;
+                }
+
+                // Construire embed par agent
+                // regrouper sessions par agent
+                const byAgent = {};
+                sessionsInPeriod.forEach(s => {
+                    // s.agents est un tableau d'agents (au moment du start)
+                    (s.agents || []).forEach(agent => {
+                        if (!byAgent[agent.name]) byAgent[agent.name] = [];
+                        byAgent[agent.name].push(s);
+                    });
+                });
+
+                const embeds = [];
+                Object.keys(byAgent).forEach(agentName => {
+                    const agentSessions = byAgent[agentName];
+                    let description = agentSessions.map(sess => {
+                        const evs = (sess.events || []).map(e => `• [${e.timestampReadable}] ${e.description} (par ${e.addedBy || '—'})`).join('\n') || 'Aucun événement';
+                        return `**Lieu:** ${sess.location}\n**Prise:** ${sess.startTimeReadable}\n**Fin:** ${sess.endTimeReadable || '—'}\n**Durée:** ${sess.durationReadable || '—'}\n**Événements:**\n${evs}`;
+                    }).join('\n\n---\n\n');
+
+                    // tronquer si trop long (Discord a des limites)
+                    if (description.length > 1000) description = description.slice(0, 980) + '\n…';
+
+                    embeds.push({
+                        title: `Agent: ${agentName}`,
+                        description: description,
+                        type: 'rich'
+                    });
+                });
+
+                const payload = {
+                    username: 'Main Courante Bot - Rapport',
+                    embeds: embeds
+                };
+
+                const response = await fetch(DISCORD_DAILY_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    mode: 'cors'
+                });
+
+                if (response.ok) {
+                    addLog('✅ Rapport quotidien envoyé', 'success');
+                } else {
+                    addLog('❌ Erreur envoi rapport quotidien', 'error');
+                }
+            } catch (err) {
+                addLog('❌ Erreur rapport quotidien: ' + err.message, 'error');
+                console.error(err);
+            }
+        }
+
+        /**
+         * Planifier l'envoi quotidien à 08:00 (fonctionne tant que la page reste ouverte)
+         */
+        function scheduleDailyReport() {
+            try {
+                const now = new Date();
+                // prochaine occurrence de 08:00
+                let next = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8,0,0,0);
+                if (now >= next) {
+                    // si on est déjà passé aujourd'hui 08:00, planifier demain 08:00
+                    next = new Date(next.getTime() + 24*3600*1000);
+                }
+                const delay = next.getTime() - now.getTime();
+                addLog('Planning rapport quotidien pour: ' + formatDateTime(next), 'success');
+                setTimeout(async function tick() {
+                    await sendDailyReportWebhook();
+                    // programmer le prochain dans 24h
+                    setTimeout(tick, 24*3600*1000);
+                }, delay);
+            } catch (e) {
+                console.error('Erreur scheduleDailyReport', e);
             }
         }
 
@@ -998,6 +1238,49 @@
         }
 
         /**
+         * Rafraîchir les UI liant les agents connectés / agent actif
+         */
+        function refreshAgentsUI() {
+            // liste des agents connectés dans la zone de démarrage
+            const agentsSelect = document.getElementById('agentsConnected');
+            agentsSelect.innerHTML = '';
+            loggedInAgents.forEach(a => {
+                const opt = document.createElement('option');
+                opt.value = a.id;
+                opt.textContent = a.name;
+                agentsSelect.appendChild(opt);
+            });
+
+            // si une session est active, remplir le select 'activeAgentSelect'
+            const activeSelect = document.getElementById('activeAgentSelect');
+            if (currentSession && activeSelect) {
+                activeSelect.innerHTML = '';
+                currentSession.agents.forEach(a => {
+                    const opt = document.createElement('option');
+                    opt.value = a.id;
+                    opt.textContent = a.name;
+                    activeSelect.appendChild(opt);
+                });
+                // sélectionner le premier si rien
+                if (!activeSelect.value && activeSelect.options.length > 0) activeSelect.selectedIndex = 0;
+            }
+        }
+
+        /**
+         * Démarrer le flow "Ajouter Agent" :
+         * - met un flag qui fait que lors du prochain login, l'agent sera ajouté à loggedInAgents
+         * - affiche le panneau de connexion
+         */
+        function startAddAgent() {
+            addAgentMode = true;
+            // afficher le panneau de login
+            document.getElementById('loginPanel').classList.remove('hidden');
+            document.getElementById('mainContent').classList.add('hidden');
+            document.getElementById('loginId').focus();
+            addLog('Mode "Ajouter Agent" activé — veuillez connecter le nouvel agent.', 'success');
+        }
+
+        /**
          * Initialisation au chargement de la page
          */
         window.onload = function() {
@@ -1009,285 +1292,10 @@
             if (savedSession) {
                 addLog('⚠️ Session interrompue détectée', 'error');
             }
+
+            // planifier le rapport quotidien
+            scheduleDailyReport();
         };
     </script>
 </body>
 </html>
-
-<!--
-========================================
-SCHÉMA SQL MYSQL - À IMPORTER DANS phpMyAdmin
-========================================
-
--- Table des sessions de service
-CREATE TABLE mc_sessions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    agent_name VARCHAR(100) NOT NULL,
-    location VARCHAR(255) NOT NULL,
-    start_time DATETIME NOT NULL,
-    end_time DATETIME DEFAULT NULL,
-    duration_seconds INT DEFAULT NULL,
-    event_count INT DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_agent (agent_name),
-    INDEX idx_start_time (start_time)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Table des événements
-CREATE TABLE mc_events (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    session_id INT NOT NULL,
-    timestamp DATETIME NOT NULL,
-    description TEXT NOT NULL,
-    photo LONGTEXT DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (session_id) REFERENCES mc_sessions(id) ON DELETE CASCADE,
-    INDEX idx_session (session_id),
-    INDEX idx_timestamp (timestamp)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-========================================
-EXEMPLE CODE PHP - save.php
-========================================
-
-<?php
-/**
- * Script PHP pour enregistrer les sessions en base de données MySQL
- * À placer sur votre serveur et configurer l'URL dans la constante BACKEND_URL
- * 
- * ⚠️ SÉCURITÉ : En production, ajouter :
- * - Validation et authentification des requêtes
- * - Protection CSRF
- * - Limitation de taille des données
- * - Logs d'erreur sécurisés
- * - Utilisation de HTTPS obligatoire
- */
-
-// Configuration de la base de données
-// ⚠️ REMPLACER par vos vraies informations de connexion
-$db_host = 'localhost';
-$db_user = 'votre_utilisateur';
-$db_pass = 'votre_mot_de_passe';
-$db_name = 'votre_base_de_donnees';
-
-// Headers CORS (à adapter selon vos besoins)
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *'); // ⚠️ En production, spécifier le domaine exact
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-
-// Gérer les requêtes OPTIONS (preflight)
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
-
-// Accepter uniquement les requêtes POST
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['success' => false, 'error' => 'Méthode non autorisée']);
-    exit();
-}
-
-try {
-    // Connexion à la base de données
-    $pdo = new PDO(
-        "mysql:host=$db_host;dbname=$db_name;charset=utf8mb4",
-        $db_user,
-        $db_pass,
-        [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES => false
-        ]
-    );
-    
-    // Récupérer les données JSON
-    $json = file_get_contents('php://input');
-    $data = json_decode($json, true);
-    
-    if (!$data) {
-        throw new Exception('Données JSON invalides');
-    }
-    
-    // Validation des données obligatoires
-    if (empty($data['agent']) || empty($data['location']) || empty($data['startTime'])) {
-        throw new Exception('Données manquantes');
-    }
-    
-    // Démarrer une transaction
-    $pdo->beginTransaction();
-    
-    // Insérer la session
-    $stmt = $pdo->prepare("
-        INSERT INTO mc_sessions 
-        (agent_name, location, start_time, end_time, duration_seconds, event_count) 
-        VALUES (:agent, :location, :start_time, :end_time, :duration, :event_count)
-    ");
-    
-    $stmt->execute([
-        ':agent' => $data['agent'],
-        ':location' => $data['location'],
-        ':start_time' => $data['startTime'],
-        ':end_time' => $data['endTime'] ?? null,
-        ':duration' => $data['duration'] ?? null,
-        ':event_count' => isset($data['events']) ? count($data['events']) : 0
-    ]);
-    
-    $session_id = $pdo->lastInsertId();
-    
-    // Insérer les événements
-    if (!empty($data['events']) && is_array($data['events'])) {
-        $stmt = $pdo->prepare("
-            INSERT INTO mc_events 
-            (session_id, timestamp, description, photo) 
-            VALUES (:session_id, :timestamp, :description, :photo)
-        ");
-        
-        foreach ($data['events'] as $event) {
-            // Limiter la taille des photos (ex: 5 Mo en base64)
-            $photo = null;
-            if (!empty($event['photo'])) {
-                $photoSize = strlen($event['photo']);
-                if ($photoSize > 5 * 1024 * 1024) {
-                    // Photo trop grande, ignorer
-                    error_log("Photo trop grande ignorée: $photoSize bytes");
-                } else {
-                    $photo = $event['photo'];
-                }
-            }
-            
-            $stmt->execute([
-                ':session_id' => $session_id,
-                ':timestamp' => $event['timestamp'],
-                ':description' => $event['description'],
-                ':photo' => $photo
-            ]);
-        }
-    }
-    
-    // Valider la transaction
-    $pdo->commit();
-    
-    // Réponse succès
-    echo json_encode([
-        'success' => true,
-        'session_id' => $session_id,
-        'message' => 'Session enregistrée avec succès'
-    ]);
-    
-} catch (PDOException $e) {
-    // Annuler la transaction en cas d'erreur
-    if (isset($pdo) && $pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
-    
-    // Logger l'erreur (ne pas exposer les détails au client)
-    error_log('Erreur base de données: ' . $e->getMessage());
-    
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'error' => 'Erreur lors de l\'enregistrement'
-    ]);
-    
-} catch (Exception $e) {
-    // Erreur générale
-    error_log('Erreur: ' . $e->getMessage());
-    
-    http_response_code(400);
-    echo json_encode([
-        'success' => false,
-        'error' => $e->getMessage()
-    ]);
-}
-?>
-
-========================================
-NOTES DE SÉCURITÉ - À LIRE IMPÉRATIVEMENT
-========================================
-
-1. AUTHENTIFICATION :
-   - Ne JAMAIS stocker les mots de passe en clair
-   - Utiliser un système d'authentification serveur robuste (JWT, sessions PHP, OAuth)
-   - Implémenter une authentification à deux facteurs pour les comptes sensibles
-   - Hasher les mots de passe avec bcrypt ou Argon2
-
-2. VALIDATION CÔTÉ SERVEUR :
-   - Toujours valider et nettoyer les données reçues côté serveur
-   - Ne jamais faire confiance aux données client
-   - Utiliser des requêtes préparées (PDO) pour éviter les injections SQL
-   - Valider les types, formats et longueurs des données
-
-3. GESTION DES IMAGES :
-   - Limiter la taille maximale des uploads (ex: 5 Mo)
-   - Vérifier le type MIME réel des fichiers (pas seulement l'extension)
-   - Stocker les images hors du webroot si possible
-   - Envisager un service de stockage externe (AWS S3, etc.) pour la production
-
-4. PROTECTION CSRF/XSS :
-   - Implémenter des tokens CSRF pour toutes les actions sensibles
-   - Échapper toutes les sorties HTML (déjà fait dans ce code avec escapeHtml)
-   - Utiliser Content Security Policy (CSP) headers
-   - Valider l'origine des requêtes
-
-5. CORS :
-   - En production, spécifier les domaines autorisés précisément
-   - Ne jamais utiliser Access-Control-Allow-Origin: * en production
-   - Privilégier un backend sur le même domaine pour éviter CORS
-
-6. HTTPS :
-   - OBLIGATOIRE en production pour protéger les données en transit
-   - Utiliser des certificats SSL/TLS valides (Let's Encrypt gratuit)
-   - Forcer HTTPS avec HSTS headers
-
-7. WEBHOOK DISCORD :
-   - Ne jamais exposer l'URL du webhook côté client en production
-   - Passer par un backend serveur pour envoyer les webhooks
-   - Limiter le débit d'envoi (rate limiting)
-
-8. DONNÉES SENSIBLES :
-   - Ne pas stocker d'informations personnelles sensibles sans chiffrement
-   - Respecter le RGPD (consentement, droit à l'oubli, etc.)
-   - Implémenter des sauvegardes régulières
-   - Définir des politiques de rétention des données
-
-9. LOGS ET MONITORING :
-   - Logger les actions importantes (connexions, modifications)
-   - Ne pas logger les mots de passe ou tokens
-   - Monitorer les tentatives de connexion échouées
-   - Mettre en place des alertes pour activités suspectes
-
-10. MISE À JOUR :
-    - Garder PHP, MySQL et toutes les dépendances à jour
-    - Effectuer des audits de sécurité réguliers
-    - Tester les sauvegardes et le plan de reprise d'activité
-
-========================================
-POUR DÉPLOYER EN PRODUCTION :
-========================================
-
-1. Remplacer DISCORD_WEBHOOK_URL par votre webhook Discord
-2. Créer la base de données MySQL et importer le schéma SQL ci-dessus
-3. Configurer save.php avec vos identifiants de base de données
-4. Uploader save.php sur votre serveur web (PHP 7.4+ recommandé)
-5. Mettre à jour BACKEND_URL avec l'URL de save.php
-6. Décommenter l'appel à saveToBackend() dans la fonction endService()
-7. Implémenter une vraie authentification côté serveur
-8. Configurer HTTPS sur votre serveur
-9. Tester en environnement de staging avant production
-10. Former les utilisateurs sur l'utilisation de l'outil
-
-========================================
-SUPPORT ET DOCUMENTATION :
-========================================
-
-Pour toute question ou problème :
-- Vérifier les logs du navigateur (Console F12)
-- Vérifier les logs PHP du serveur
-- Consulter la documentation Discord Webhooks : https://discord.com/developers/docs/resources/webhook
-- Documentation PHP PDO : https://www.php.net/manual/fr/book.pdo.php
-
-Version : 1.0
-Dernière mise à jour : 2025
--->
